@@ -8,36 +8,31 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.stream.Collectors;
 
-/**
- * NEW FILE — GlobalExceptionHandler
- *
- * Without this, any RuntimeException thrown in the service returns a
- * generic 500 Internal Server Error to the frontend.
- *
- * This handler converts exceptions into proper HTTP responses:
- *   - RuntimeException  → 400 Bad Request  (e.g. "Email Already Exists")
- *   - Validation errors → 400 Bad Request  (e.g. "Email is required")
- *   - Any other error   → 500 Internal Server Error
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
-     * Handles RuntimeExceptions from UserService
-     * (duplicate email, invalid credentials, etc.)
-     * Returns 400 Bad Request with the error message as plain text.
+     * Handles duplicate email registration attempts → 409 Conflict
      */
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<String> handleDuplicateEmail(DuplicateEmailException ex) {
         return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
+                .status(HttpStatus.CONFLICT)
                 .body(ex.getMessage());
     }
 
     /**
-     * Handles @Valid annotation failures from DTOs
-     * (e.g. blank email, password too short)
-     * Collects all validation messages into a single string.
+     * Handles invalid login credentials → 401 Unauthorized
+     */
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<String> handleInvalidCredentials(InvalidCredentialsException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ex.getMessage());
+    }
+
+    /**
+     * Handles @Valid annotation failures from DTOs → 400 Bad Request
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<String> handleValidationException(MethodArgumentNotValidException ex) {
@@ -53,7 +48,8 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Catch-all for any unexpected errors
+     * Catch-all for any unexpected errors → 500 Internal Server Error
+     * Does NOT leak internal error details to the client.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGenericException(Exception ex) {

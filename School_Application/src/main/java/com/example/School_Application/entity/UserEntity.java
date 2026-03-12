@@ -5,6 +5,7 @@ import lombok.*;
 import java.time.LocalDate;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Data
@@ -16,7 +17,10 @@ public class UserEntity {
 
     @Id
     private String id;
+
+    @Indexed(unique = true)
     private String email;
+
     private String password;
     private String role;
 

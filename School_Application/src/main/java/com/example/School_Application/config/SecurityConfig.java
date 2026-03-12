@@ -1,5 +1,6 @@
 package com.example.School_Application.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -8,10 +9,14 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.config.Customizer;
 
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -19,23 +24,26 @@ public class SecurityConfig {
                 // Enable CORS (uses WebConfig mappings)
                 .cors(Customizer.withDefaults())
 
-                // FIX: Disable CSRF — safe for stateless REST APIs using JWT
+                // Disable CSRF — safe for stateless REST APIs using JWT
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // FIX: Stateless session — no server-side session needed with JWT
+                // Stateless session — no server-side session needed with JWT
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // All endpoints are public for now (auth is handled by JWT in service layer)
-                // TODO: When you add a JWT filter, lock down protected routes like:
-                // .requestMatchers("/api/application/**").authenticated()
+                // Route security: only auth endpoints and actuator health are public
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll())
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .anyRequest().authenticated())
 
-                // FIX: Removed httpBasic — not needed for a JWT-based REST API
-                // FIX: Disabled form login — this is a REST API, not a web app
+                // Disable form login and httpBasic — this is a REST API
                 .formLogin(AbstractHttpConfigurer::disable)
-                .httpBasic(AbstractHttpConfigurer::disable);
+                .httpBasic(AbstractHttpConfigurer::disable)
+
+                // Add JWT filter before Spring's default authentication filter
+                .addFilterBefore(jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
