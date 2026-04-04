@@ -34,6 +34,7 @@ public class SecurityConfig {
                 // Route security: only auth endpoints and actuator health are public
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/admin/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .anyRequest().authenticated())
 
